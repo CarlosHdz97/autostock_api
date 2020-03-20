@@ -17,5 +17,6 @@ $router->get('/', function () use ($router) {
 
 $router->group(['prefix' => 'orders'], function() use ($router){
     $router->get('/toSupply', 'OrdersController@getProductsToSupply');
+    $router->post('/generate', 'OrdersController@generateOrder');
     $router->get('/', 'OrdersController@storeData');
 });
