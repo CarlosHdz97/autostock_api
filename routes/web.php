@@ -16,7 +16,18 @@ $router->get('/', function () use ($router) {
 });
 
 $router->group(['prefix' => 'orders'], function() use ($router){
+    $router->get('/store', 'OrdersController@getDataStore');
+    $router->get('/celler', 'OrdersController@getDataCeller');
     $router->get('/toSupply', 'OrdersController@getProductsToSupply');
+    $router->post('/', 'OrdersController@getOrder');
+    $router->post('/status', 'OrdersController@changeStatus');
+    $router->post('/print', 'OrdersController@printTicket');
+    $router->post('/pdf', 'OrdersController@getPdf');
     $router->post('/generate', 'OrdersController@generateOrder');
-    $router->get('/', 'OrdersController@storeData');
+
+});
+
+$router->group(['prefix' => 'prices'], function() use ($router){
+    $router->get('/list', 'PriceController@get');
+    $router->post('/', 'PriceController@getProduct');
 });
