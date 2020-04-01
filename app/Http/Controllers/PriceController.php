@@ -34,11 +34,13 @@ class PriceController extends Controller{
                 $prices_required = [0];
             }
             $product->prices = $this->customPrices($prices, $prices_required, $request->orderBy);
+            $product->tool_price = 0;
+            $product->tool = '';
             if(count($code)>1){
-                $extension = DB::connection('mysql_pedidos')->table('products')->where('pro_shortcode', $code[1])->orWhere('pro_shortcode', $code[1])->first();
-                $extension_price = DB::connection('mysql_pedidos')->table('product_prices')->where([['pp_item', $extension->pro_code],['pp_pricelist', 0]])->get();
-                $product->price = $extension_price->pp_price;
-                $product->tool = $extension;
+                $extension = DB::connection('mysql_pedidos')->table('products')->where('pro_code', $code[1])->orWhere('pro_shortcode', $code[1])->first();
+                $extension_price = DB::connection('mysql_pedidos')->table('product_prices')->where([['pp_item', $extension->pro_code],['pp_pricelist', 1]])->first();
+                $product->tool_price = $extension_price->pp_price;
+                $product->tool = $extension->pro_code;
             }
             return response()->json($product);
         }
