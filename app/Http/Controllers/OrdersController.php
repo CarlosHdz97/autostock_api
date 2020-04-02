@@ -53,17 +53,19 @@ class OrdersController extends Controller{
 
     public function getOrders(){
         $date = new DateTime();
-        $orders = SupplyHead::where('branch_name', env('STORE_NAME'))->whereDate('created_at', $date->format('Y-m-d'))->get()->sortByDesc('created_at');
+        $orders = SupplyHead::where('branch_name', env('STORE_NAME'))->whereDate('created_at', $date->format('Y-m-d'))->get();
         $orders = $orders->fresh('status');
-        return $orders;
+        $orders = $orders->sortByDesc('created_at');
+        return $orders->values()->all();
     }
 
     public function getAll(){
         $date = new DateTime();
-        $orders = SupplyHead::whereDate('created_at', $date->format('Y-m-d'))->get()->sortByDesc('created_at');
-        //$orders = SupplyHead::all()->sortByDesc('created_at');
+        $orders = SupplyHead::whereDate('created_at', $date->format('Y-m-d'))->get();
+        //$orders = SupplyHead::all();
         $orders = $orders->fresh('status');
-        return $orders;
+        $orders = $orders->sortByDesc('created_at');
+        return $orders->values()->all();
     }
 
     public function getOrder(Request $request){
