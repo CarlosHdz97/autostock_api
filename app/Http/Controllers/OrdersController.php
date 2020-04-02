@@ -217,32 +217,34 @@ class OrdersController extends Controller{
         $products = [];
         $date = new DateTime();
         $items = collect($this->getProductsFromAccess());
-        $productos = $items->map(function($item){
+        $family = $this->getFamily($items);
+        $productos = $items->map(function($item, $index) use ($family){
             $data = Product::where('pro_code',  $item['ARTSTO'])->first();
             if(!$data){
-                return $data;
+                return $item;
             }
             $min = intval($item['MINSTO']);
             $max = intval($item['MAXSTO']);
             $stock = intval($item['ACTSTO']);
+            $type_supply = $this->getTypeSupply($family[$index]);
             return [
-                'code' => $data->pro_code, 
+                'code' => $data->pro_code,
                 'description' => $data->pro_largedesc,
+                'family' => $family[$index],
+                'type_supply' => $type_supply,
                 'min' => $min,
                 'max' => $max,
                 'act' => $stock,
                 'ipack' => $data->pro_innerpack,
-                'req' => $this->getSupply($min, $max, $stock, 5),
+                'req' => $this->getSupply($min, $max, $stock, $data->pro_innerpack, $type_supply),
             ];
-        });
-        $product_required = [];
-        foreach($productos as $product){
-            if($product){
-                if($product['req']>0){
-                    array_push($product_required, $product);
-                }
+        })->filter(function($product){
+            if(array_key_exists('req', $product)){
+                return $product['req']>0;
+            }else{
+                return false;
             }
-        }
+        });
         
         return response()->json([
             'node' => [
@@ -251,7 +253,7 @@ class OrdersController extends Controller{
                 'typesupply'=> env('STORE_TYPE_SUPPLY'),
                 'emmited' => $date->format('Y-m-d h:i')
             ],
-            'items' => $product_required,
+            'items' => $productos->values()->all(),
         ]);
     }
     
@@ -259,7 +261,7 @@ class OrdersController extends Controller{
         $dbName = env('ACCESS_FILE');
         try {
             $db = new PDO("odbc:DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};charset=UTF-8; DBQ=$dbName; Uid=; Pwd=;");
-            $query = "SELECT * FROM F_STO WHERE MINSTO>0 AND MAXSTO>0";
+            $query = "SELECT * FROM F_STO WHERE MINSTO>0 AND MAXSTO>0 AND (MAXSTO-ACTSTO)>0 AND (MINSTO>ACTSTO)";
             $q = $db->prepare($query);
             $q->execute(null);
 
@@ -270,28 +272,38 @@ class OrdersController extends Controller{
         }
     }
 
-    public function getSupply($min, $max, $stock, $innerPack){
+    public function getSupply($min, $max, $stock, $innerPack, $type_supply){
         $res = $max - $stock;
-        switch(env('STORE_TYPE_SUPPLY')){
+        switch($type_supply){
             case 'containers':
-                $cajas = $res/$innerPack;
-                return intval($cajas);
+                $cajas = round($res/$innerPack);
+                return $cajas*$innerPack;
             break;
             case 'units':
                 if($min>$stock){
-                    if(($min-$stock)<=5){
-                        return 0;
-                    }else{
-                        return $res;
-                    }
+                    return $res;
                 }
                 else{
-                    if($res>0){
-                        return $res;
-                    }
+                    return $res;
                 }
             break;
         }
+    }
+
+    public function getTypeSupply($family){
+        $container = ['NAV','CAL','ACC','PAR','EQU','PAP','ELE','JUG','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','AUD','BAR','BEL','BOC','CAC','CCI','HIG','HOG','IMP','JUE','JUG','MEM','PAN','PIL','PRO','REL','RET','ROP','SAL','TAZ','TEC','TER'];
+        $units = ['MOC','PEL','MON','BOL','CAN','CAR','COS','CRT','HER','LAP','LON','LLA','MAL','MAR','MOU','MRO','PMO','POF','POR'];
+        $type_supply = '';
+        foreach($container  as $fam){
+            if($fam == $family){
+                $type_supply = "containers";
+            }
+        }
+        if(!$type_supply){
+            $type_supply = "units";
+        }
+
+        return $type_supply;
     }
 
     public function generateOrder(Request $request){
@@ -367,6 +379,23 @@ class OrdersController extends Controller{
             }
         });
         return $stocks;
+    }
+
+    public function getFamily($products){
+        $dbName = env('ACCESS_FILE');
+        $db = new PDO("odbc:DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};charset=UTF-8; DBQ=$dbName; Uid=; Pwd=;");
+        
+        $family = $products->map( function($product) use ($db){
+            $q = $db->prepare("SELECT * FROM F_ART WHERE CODART=?");
+            $q->execute([$product['ARTSTO']]);
+            $rows = $q->fetch(PDO::FETCH_ASSOC);
+            if($rows){
+                return $rows['FAMART'];
+            }else{
+                return 0;
+            }
+        });
+        return $family;
     }
 
     public function chageStatus($request){
