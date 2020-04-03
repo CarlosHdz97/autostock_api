@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Product;
 
 class PriceController extends Controller{
     /**
@@ -22,18 +23,19 @@ class PriceController extends Controller{
 
     public function getProduct(Request $request){
         $code = explode('+',$request->code);
-        $product = DB::connection('mysql_pedidos')->table('products')->where('pro_code', $code[0])->first();
+        $product = Product::where('pro_code', $code[0])->first();
         if(!$product){
-            $product = DB::connection('mysql_pedidos')->table('products')->where('pro_shortcode', $code[0])->first();
+            $product = Product::where('pro_shortcode', $code[0])->first();
         }
         if($product){
-            $prices = DB::connection('mysql_pedidos')->table('product_prices')->where('pp_item', $product->pro_code)->get();
-            $product->type = $this->getType($prices);
+            $product = $product->fresh('prices');
+            $product->type = $this->getType($product->prices);
+            $product->amount = 1;
             $prices_required = $request->prices;
             if($product->type=='off'){
-                $prices_required = [0];
+                $prices_required = [1];
             }
-            $product->prices = $this->customPrices($prices, $prices_required, $request->orderBy);
+            $product->_prices = $this->customPrices($product->prices, $prices_required, $request->orderBy);
             $product->tool_price = 0;
             $product->tool = '';
             if(count($code)>1){
@@ -48,31 +50,31 @@ class PriceController extends Controller{
     }
 
     public function customPrices($prices, $prices_required, $orderBy){
-        $_prices = collect($prices);
-        if($orderBy == 'Desc'){
-            return $_prices->filter(function( $price) use ($prices_required){
-                $price_valid = false;
-                foreach($prices_required as $required){
-                    if($required == $price->pp_pricelist){
-                        $price_valid = true;
-                    }
-                }
-                return $price_valid;
-            })->sortByDesc('pp_pricelist');
-        }
-        return $_prices->filter(function( $price) use ($prices_required){
+        $_prices = collect($prices)->map( function($price){
+            return [
+                'id' => $price->lp_id,
+                'name' => $price->lp_name,
+                'desc' => $price->lp_desc,
+                'price' => $price->pivot->pp_price
+            ];
+        })->filter(function( $price) use ($prices_required){
             $price_valid = false;
             foreach($prices_required as $required){
-                if($required == $price->pp_pricelist){
+                if($required === $price['id']){
                     $price_valid = true;
                 }
             }
             return $price_valid;
-        })->sortBy('pp_pricelist');
+        });
+        
+        if($orderBy == 'Desc'){
+            return $_prices->sortByDesc('pp_pricelist');
+        }
+        return $_prices->sortBy('pp_pricelist');
     }
 
     public function getType($prices){
-        if($prices[0]->pp_price == $prices[1]->pp_price && $prices[2]->pp_price == $prices[1]->pp_price){
+        if($prices[0]->pivot->pp_price == $prices[1]->pivot->pp_price && $prices[2]->pivot->pp_price == $prices[1]->pivot->pp_price){
             return 'off';
         }
         return 'std';

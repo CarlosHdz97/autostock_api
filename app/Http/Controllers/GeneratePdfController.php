@@ -65,7 +65,7 @@ class GeneratePdfController extends Controller{
                             <span style="font-size:'.$font_size_prices.'em; font-weight: bold;">'.$this->customPrices($product['prices']).'</span>
                             <span style="font-size:1.5em; font-weight: bold;">'.$product['tool'].$pz.'</span>
                         </div>';
-            $this->setImageBackground_area(__DIR__.'./resources/img/STAR12.png', $content, $width=47, $height=53, $cols=3, $rows=2, $top_space=0, $sides_space= 26, $key, $top_margin=30, $sides_margin=52);
+            $this->setImageBackground_area(__DIR__.'./resources/img/STAR12.png', $content, $width=47, $height=53, $cols=3, $rows=2, $top_space=0, $sides_space= 27.5, $key, $top_margin=30, $sides_margin=53.5);
         });
         $nameFile = time().'.pdf';
         PDF::Output(__DIR__.'/../../../files/'.$nameFile, 'F');
