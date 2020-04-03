@@ -31,3 +31,8 @@ $router->group(['prefix' => 'prices'], function() use ($router){
     $router->get('/list', 'PriceController@get');
     $router->post('/', 'PriceController@getProduct');
 });
+
+$router->group(['prefix' => 'pdf'], function() use ($router){
+    $router->get('/test', 'GeneratePdfController@test');
+    $router->post('/', 'GeneratePdfController@generatePdf');
+});
