@@ -39,23 +39,25 @@ class GeneratePdfController extends Controller{
                 /* PDF::MultiCell($w=100, $h=10, '<span style="font-size:2em;">Página'.intval($key/6).'</span>', $border=0, $align='left', $fill=0, $ln=0, $x=0, $y=0, $reseth=true, $stretch=0, $ishtml=true, $autopadding=false, $maxh=0); */
             }
             $pz = '';
+            $addSise = 0;
             if($isInnerPack){
                 $pz = ' | '.$product['ipack'];
+                $addSise = .2;
             }
             $number_of_prices = count($product['prices']);
             $font_size_prices = 2;
             switch($number_of_prices){
                 case 1:
-                    $font_size_prices = 3.2;
+                    $font_size_prices = 3.1+$addSise;
                 break;
                 case 2:
-                    $font_size_prices = 2.4;
+                    $font_size_prices = 2.3+$addSise;
                 break;
                 case 3:
-                    $font_size_prices = 1.9;
+                    $font_size_prices = 1.8+$addSise;
                 break;
                 case 4:
-                    $font_size_prices = 1.6;
+                    $font_size_prices = 1.5+$addSise;
                 break;
             }
 
@@ -63,9 +65,10 @@ class GeneratePdfController extends Controller{
                             <span style="font-size:3.2em; font-weight: bold;">'.$product['scode'].'</span><span style="font-size:.1em"><br/></span>
                             <span style="font-size:2em; font-weight: bold;">'.$product['item'].'</span><span style="font-size:.1em"><br/></span>
                             <span style="font-size:'.$font_size_prices.'em; font-weight: bold;">'.$this->customPrices($product['prices']).'</span>
-                            <span style="font-size:1.5em; font-weight: bold;">'.$product['tool'].$pz.'</span>
+                            <span style="font-size:1.3em; font-weight: bold;">'.$product['tool'].$pz.'</span>
                         </div>';
-            $this->setImageBackground_area(__DIR__.'./resources/img/STAR12.png', $content, $width=47, $height=53, $cols=3, $rows=2, $top_space=0, $sides_space= 27.5, $key, $top_margin=30, $sides_margin=53.5);
+            $this->setImageBackground_area(__DIR__.'./resources/img/STAR12.png', $content, $width=47, $height=53, $cols=3, $rows=2, $top_space=-4, $sides_space= 29, $key, $top_margin=31.5, $sides_margin=48.5);
+
         });
         $nameFile = time().'.pdf';
         PDF::Output(__DIR__.'/../../../files/'.$nameFile, 'F');

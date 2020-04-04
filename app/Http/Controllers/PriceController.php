@@ -29,13 +29,16 @@ class PriceController extends Controller{
         }
         if($product){
             $product = $product->fresh('prices');
+            if(count($product->prices)<1){
+                return response()->json(405);
+            }
             $product->type = $this->getType($product->prices);
             $product->amount = 1;
             $prices_required = $request->prices;
             if($product->type=='off'){
                 $prices_required = [1];
             }
-            $product->_prices = $this->customPrices($product->prices, $prices_required, $request->orderBy);
+            $product->_prices = $this->customPrices($product->prices, $prices_required, $request->orderBy, $product->type);
             $product->tool_price = 0;
             $product->tool = '';
             if(count($code)>1){
@@ -46,11 +49,19 @@ class PriceController extends Controller{
             }
             return response()->json($product);
         }
-        return response()->json(100);  
+        return response()->json(404);  
     }
 
-    public function customPrices($prices, $prices_required, $orderBy){
-        $_prices = collect($prices)->map( function($price){
+    public function customPrices($prices, $prices_required, $orderBy, $type){
+        $_prices = collect($prices)->map( function($price) use($type){
+            if($type == 'off'){
+                return [
+                    'id' => $price->lp_id,
+                    'name' => 'OFERTA',
+                    'desc' => 'OFERTA',
+                    'price' => $price->pivot->pp_price
+                ];
+            }
             return [
                 'id' => $price->lp_id,
                 'name' => $price->lp_name,
@@ -68,9 +79,12 @@ class PriceController extends Controller{
         });
         
         if($orderBy == 'Desc'){
-            return $_prices->sortByDesc('pp_pricelist');
+            $precios = $_prices->sortBy('id');
+        }else{
+            $precios = $_prices->sortByDesc('id');
         }
-        return $_prices->sortBy('pp_pricelist');
+
+        return $precios->values()->all();
     }
 
     public function getType($prices){
