@@ -38,18 +38,41 @@ class PriceController extends Controller{
             if($product->type=='off'){
                 $prices_required = [1];
             }
-            $product->_prices = $this->customPrices($product->prices, $prices_required, $request->orderBy, $product->type);
             $product->tool_price = 0;
             $product->tool = '';
             if(count($code)>1){
-                $extension = DB::connection('mysql_pedidos')->table('products')->where('pro_code', $code[1])->orWhere('pro_shortcode', $code[1])->first();
-                $extension_price = DB::connection('mysql_pedidos')->table('product_prices')->where([['pp_item', $extension->pro_code],['pp_pricelist', 1]])->first();
-                $product->tool_price = $extension_price->pp_price;
-                $product->tool = $extension->pro_code;
+
+                /* $extension = DB::connection('mysql_pedidos')->table('products')->where('pro_code', $code[1])->orWhere('pro_shortcode', $code[1])->first();
+                $extension_price = DB::connection('mysql_pedidos')->table('product_prices')->where([['pp_item', $extension->pro_code],['pp_pricelist', 1]])->first(); */
+                if($code[1]=='C'){
+                    $extension = DB::connection('mysql_pedidos')->table('products')->where('pro_code', 'L-550-N')->orWhere('pro_shortcode', 'L-550')->first();
+                    $extension_price = DB::connection('mysql_pedidos')->table('product_prices')->where([['pp_item', $extension->pro_code],['pp_pricelist', 1]])->first();
+                    $extension_price = $extension_price->pp_price;
+                }elseif($code[1]=='CC'){
+                    $extension = DB::connection('mysql_pedidos')->table('products')->where('pro_code', 'L-550-C')->orWhere('pro_shortcode', 'L-550-C')->first();
+                    $extension_price = DB::connection('mysql_pedidos')->table('product_prices')->where([['pp_item', $extension->pro_code],['pp_pricelist', 1]])->first();
+                    $extension_price = $extension_price->pp_price;
+                }else{
+                    $extension_price = 0;
+                }
+                $extension = $code[1];
+            }else{
+                $extension_price = 0;
+                $extension = '';
             }
-            return response()->json($product);
+            return response()->json([
+                'code'=> $product->pro_code,
+                'scode'=> $product->pro_shortcode,
+                'description'=> $product->pro_largedesc,
+                'tool'=> $extension,
+                'ipack'=> $product->pro_innerpack,
+                'tool_price'=> $extension_price,
+                'type'=> $product->type,
+                'prices'=> $this->customPrices($product->prices, $prices_required, $request->orderBy, $product->type),
+                'number' => 1
+            ]);
         }
-        return response()->json(404);  
+        return response()->json(404);
     }
 
     public function customPrices($prices, $prices_required, $orderBy, $type){
